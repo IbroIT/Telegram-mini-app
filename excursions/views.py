@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from django.db.models import Q
 
 from .models import ExcursionCategory, ExcursionFeature, Excursion, ExcursionBooking
-from .serializers import ExcursionCategorySerializer, ExcursionFeatureSerializer, ExcursionSerializer, ExcursionBookingSerializer, CreateExcursionBookingSerializer
+from .serializers import ExcursionCategorySerializer, ExcursionFeatureSerializer, ExcursionSerializer, ExcursionBookingSerializer, CreateExcursionBookingSerializer, ExcursionListSerializer
 
 class ExcursionCategoryViewSet(viewsets.ModelViewSet):
     queryset = ExcursionCategory.objects.all()

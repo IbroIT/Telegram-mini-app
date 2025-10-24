@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from django.db.models import Q
 
 from .models import MotoCategory, MotoFeature, Motorcycle, MotoBooking
-from .serializers import MotoCategorySerializer, MotoFeatureSerializer, MotorcycleSerializer, MotoBookingSerializer, CreateMotoBookingSerializer
+from .serializers import MotoCategorySerializer, MotoFeatureSerializer, MotorcycleSerializer, MotoBookingSerializer, CreateMotoBookingSerializer, MotorcycleListSerializer
 
 class MotoCategoryViewSet(viewsets.ModelViewSet):
     queryset = MotoCategory.objects.all()
