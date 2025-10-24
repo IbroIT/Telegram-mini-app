@@ -13,4 +13,9 @@ urlpatterns = [
     path('available-cars/', views.AvailableCarsView.as_view(), name='available-cars'),
     path('car-availability/<int:car_id>/', views.CarAvailabilityView.as_view(), name='car-availability'),
     path('booking-calendar/', views.BookingCalendarView.as_view(), name='booking-calendar'),
+    
+    # Новые endpoints для карточек
+    path('cards/', views.CarCardsView.as_view(), name='car-cards'),
+    path('categories/', views.CarCategoriesView.as_view(), name='car-categories'),
+    path('features/', views.CarFeaturesView.as_view(), name='car-features'),
 ]

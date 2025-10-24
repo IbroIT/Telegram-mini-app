@@ -297,3 +297,35 @@ class ExcursionBookingCalendarView(APIView):
                 {'error': f'Неверный формат месяца или года: {str(e)}'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
+        
+
+class ExcursionCardsView(APIView):
+    """API для получения всех экскурсий в формате карточек"""
+    
+    def get(self, request):
+        excursions = Excursion.objects.filter(status='available')
+        serializer = ExcursionListSerializer(
+            excursions, 
+            many=True, 
+            context={'request': request}
+        )
+        return Response({
+            'count': excursions.count(),
+            'results': serializer.data
+        })
+
+class ExcursionCategoriesView(APIView):
+    """API для получения категорий экскурсий"""
+    
+    def get(self, request):
+        categories = ExcursionCategory.objects.all()
+        serializer = ExcursionCategorySerializer(categories, many=True, context={'request': request})
+        return Response(serializer.data)
+
+class ExcursionFeaturesView(APIView):
+    """API для получения особенностей экскурсий"""
+    
+    def get(self, request):
+        features = ExcursionFeature.objects.all()
+        serializer = ExcursionFeatureSerializer(features, many=True)
+        return Response(serializer.data)

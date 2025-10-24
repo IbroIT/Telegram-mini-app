@@ -94,3 +94,23 @@ class CreateHouseBookingSerializer(serializers.ModelSerializer):
         )
         
         return booking
+    
+class HouseListSerializer(serializers.ModelSerializer):
+    """Сериализатор для списка домов (карточек)"""
+    category_title = serializers.CharField(source='category.title', read_only=True)
+    features = HouseFeatureSerializer(many=True, read_only=True)
+    first_image = serializers.SerializerMethodField()
+    price_per_day = serializers.IntegerField()
+    
+    class Meta:
+        model = House
+        fields = [
+            'id', 'title', 'category_title', 'floors', 'area',
+            'price_per_day', 'deposit', 'status', 'features', 'first_image'
+        ]
+    
+    def get_first_image(self, obj):
+        first_image = obj.images.first()
+        if first_image and first_image.image:
+            return self.context['request'].build_absolute_uri(first_image.image.url)
+        return None

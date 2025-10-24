@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     'motorcycles',
     'houses',
     'excursions',
+    'rest_framework',
+    'django_filters',
 ]
 
 MIDDLEWARE = [
@@ -65,8 +67,8 @@ ROOT_URLCONF = 'backend.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
+        'DIRS': [],  # можно оставить пустым
+        'APP_DIRS': True,  # должно быть True!
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -77,6 +79,12 @@ TEMPLATES = [
         },
     },
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ]
+}
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 

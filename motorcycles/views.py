@@ -264,3 +264,35 @@ class MotoBookingCalendarView(APIView):
                 {'error': f'Неверный формат месяца или года: {str(e)}'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
+        
+
+class MotorcycleCardsView(APIView):
+    """API для получения всех мотоциклов в формате карточек"""
+    
+    def get(self, request):
+        motorcycles = Motorcycle.objects.filter(status='available')
+        serializer = MotorcycleListSerializer(
+            motorcycles, 
+            many=True, 
+            context={'request': request}
+        )
+        return Response({
+            'count': motorcycles.count(),
+            'results': serializer.data
+        })
+
+class MotoCategoriesView(APIView):
+    """API для получения категорий мотоциклов"""
+    
+    def get(self, request):
+        categories = MotoCategory.objects.all()
+        serializer = MotoCategorySerializer(categories, many=True, context={'request': request})
+        return Response(serializer.data)
+
+class MotoFeaturesView(APIView):
+    """API для получения особенностей мотоциклов"""
+    
+    def get(self, request):
+        features = MotoFeature.objects.all()
+        serializer = MotoFeatureSerializer(features, many=True)
+        return Response(serializer.data)

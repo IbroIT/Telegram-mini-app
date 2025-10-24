@@ -13,4 +13,9 @@ urlpatterns = [
     path('available-houses/', views.AvailableHousesView.as_view(), name='available-houses'),
     path('house-availability/<int:house_id>/', views.HouseAvailabilityView.as_view(), name='house-availability'),
     path('house-booking-calendar/', views.HouseBookingCalendarView.as_view(), name='house-booking-calendar'),
+    
+    # Новые endpoints для карточек
+    path('cards/', views.HouseCardsView.as_view(), name='house-cards'),
+    path('categories/', views.HouseCategoriesView.as_view(), name='house-categories'),
+    path('features/', views.HouseFeaturesView.as_view(), name='house-features'),
 ]

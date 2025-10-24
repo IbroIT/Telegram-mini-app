@@ -13,4 +13,9 @@ urlpatterns = [
     path('available-excursions/', views.AvailableExcursionsView.as_view(), name='available-excursions'),
     path('excursion-availability/<int:excursion_id>/', views.ExcursionAvailabilityView.as_view(), name='excursion-availability'),
     path('excursion-booking-calendar/', views.ExcursionBookingCalendarView.as_view(), name='excursion-booking-calendar'),
+    
+    # Новые endpoints для карточек
+    path('cards/', views.ExcursionCardsView.as_view(), name='excursion-cards'),
+    path('categories/', views.ExcursionCategoriesView.as_view(), name='excursion-categories'),
+    path('features/', views.ExcursionFeaturesView.as_view(), name='excursion-features'),
 ]

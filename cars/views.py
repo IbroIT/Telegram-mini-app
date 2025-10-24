@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from django.db.models import Q
 
 from .models import Category, Feature, Car, Booking
-from .serializers import CategorySerializer, FeatureSerializer, CarSerializer, BookingSerializer, CreateBookingSerializer
+from .serializers import CategorySerializer, FeatureSerializer, CarSerializer, BookingSerializer, CreateBookingSerializer, CarListSerializer
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -223,3 +223,35 @@ class BookingCalendarView(APIView):
                 {'error': f'Неверный формат месяца или года: {str(e)}'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
+        
+
+class CarCardsView(APIView):
+    """API для получения всех автомобилей в формате карточек"""
+    
+    def get(self, request):
+        cars = Car.objects.filter(status='available')
+        serializer = CarListSerializer(
+            cars, 
+            many=True, 
+            context={'request': request}
+        )
+        return Response({
+            'count': cars.count(),
+            'results': serializer.data
+        })
+
+class CarCategoriesView(APIView):
+    """API для получения категорий автомобилей"""
+    
+    def get(self, request):
+        categories = Category.objects.all()
+        serializer = CategorySerializer(categories, many=True, context={'request': request})
+        return Response(serializer.data)
+
+class CarFeaturesView(APIView):
+    """API для получения особенностей автомобилей"""
+    
+    def get(self, request):
+        features = Feature.objects.all()
+        serializer = FeatureSerializer(features, many=True)
+        return Response(serializer.data)

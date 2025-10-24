@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from django.db.models import Q
 
 from .models import HouseCategory, HouseFeature, House, HouseBooking
-from .serializers import HouseCategorySerializer, HouseFeatureSerializer, HouseSerializer, HouseBookingSerializer, CreateHouseBookingSerializer
+from .serializers import HouseCategorySerializer, HouseFeatureSerializer, HouseSerializer, HouseBookingSerializer, CreateHouseBookingSerializer, HouseListSerializer
 
 class HouseCategoryViewSet(viewsets.ModelViewSet):
     queryset = HouseCategory.objects.all()
@@ -266,3 +266,35 @@ class HouseBookingCalendarView(APIView):
                 {'error': f'Неверный формат месяца или года: {str(e)}'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
+        
+
+class HouseCardsView(APIView):
+    """API для получения всех домов в формате карточек"""
+    
+    def get(self, request):
+        houses = House.objects.filter(status='available')
+        serializer = HouseListSerializer(
+            houses, 
+            many=True, 
+            context={'request': request}
+        )
+        return Response({
+            'count': houses.count(),
+            'results': serializer.data
+        })
+
+class HouseCategoriesView(APIView):
+    """API для получения категорий домов"""
+    
+    def get(self, request):
+        categories = HouseCategory.objects.all()
+        serializer = HouseCategorySerializer(categories, many=True, context={'request': request})
+        return Response(serializer.data)
+
+class HouseFeaturesView(APIView):
+    """API для получения особенностей домов"""
+    
+    def get(self, request):
+        features = HouseFeature.objects.all()
+        serializer = HouseFeatureSerializer(features, many=True)
+        return Response(serializer.data)

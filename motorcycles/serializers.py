@@ -96,3 +96,26 @@ class CreateMotoBookingSerializer(serializers.ModelSerializer):
         )
         
         return booking
+    
+
+class MotorcycleListSerializer(serializers.ModelSerializer):
+    """Сериализатор для списка мотоциклов (карточек)"""
+    category_title = serializers.CharField(source='category.title', read_only=True)
+    features = MotoFeatureSerializer(many=True, read_only=True)
+    first_image = serializers.SerializerMethodField()
+    price_per_day = serializers.IntegerField()
+    
+    class Meta:
+        model = Motorcycle
+        fields = [
+            'id', 'title', 'category_title', 'year', 'color',
+            'engine_volume', 'mileage', 'transmission', 'oil_type',
+            'bike_type', 'power', 'price_per_day', 'deposit', 'status', 
+            'features', 'first_image'
+        ]
+    
+    def get_first_image(self, obj):
+        first_image = obj.images.first()
+        if first_image and first_image.image:
+            return self.context['request'].build_absolute_uri(first_image.image.url)
+        return None

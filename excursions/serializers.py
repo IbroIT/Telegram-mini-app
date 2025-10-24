@@ -94,3 +94,23 @@ class CreateExcursionBookingSerializer(serializers.ModelSerializer):
         )
         
         return booking
+    
+class ExcursionListSerializer(serializers.ModelSerializer):
+    """Сериализатор для списка экскурсий (карточек)"""
+    category_title = serializers.CharField(source='category.title', read_only=True)
+    features = ExcursionFeatureSerializer(many=True, read_only=True)
+    first_image = serializers.SerializerMethodField()
+    price_per_person = serializers.IntegerField()
+    
+    class Meta:
+        model = Excursion
+        fields = [
+            'id', 'title', 'category_title', 'days', 'price_per_person',
+            'status', 'features', 'first_image'
+        ]
+    
+    def get_first_image(self, obj):
+        first_image = obj.images.first()
+        if first_image and first_image.image:
+            return self.context['request'].build_absolute_uri(first_image.image.url)
+        return None
