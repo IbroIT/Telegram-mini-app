@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from unfold.admin import ModelAdmin
 from unfold.decorators import display
-from .models import MotoCategory, MotoFeature, Motorcycle, MotoImage, MotoBooking
+from .models import MotoCategory, MotoFeature, Motorcycle, MotoImage, MotoBooking, MotoBrand
 
 class MotoImageInline(admin.TabularInline):
     model = MotoImage
@@ -34,21 +34,33 @@ class MotoFeatureAdmin(ModelAdmin):
     search_fields = ['title']
     list_per_page = 20
 
+@admin.register(MotoBrand)
+class MotoBrandAdmin(ModelAdmin):
+    list_display = ['name', 'icon_preview']
+    search_fields = ['name']
+    
+    @display(description="Иконка")
+    def icon_preview(self, obj):
+        if obj.icon:
+            return format_html('<img src="{}" width="30" height="30" style="object-fit: contain;" />', obj.icon.url)
+        return "—"
+    icon_preview.short_description = "Иконка"
+
 @admin.register(Motorcycle)
 class MotorcycleAdmin(ModelAdmin):
     list_display = [
-        'title', 'category', 'year', 'color', 'status_badge', 
+        'title', 'brand', 'category', 'year', 'color', 'status_badge', 
         'price_per_day', 'bike_type', 'features_list', 'created_at'
     ]
-    list_filter = ['category', 'status', 'features', 'year', 'oil_type', 'bike_type']
-    search_fields = ['title', 'description', 'color', 'transmission', 'bike_type']
+    list_filter = ['brand', 'category', 'status', 'features', 'year', 'oil_type', 'bike_type']
+    search_fields = ['title', 'description', 'color', 'transmission', 'bike_type', 'brand__name']
     filter_horizontal = ['features']
     inlines = [MotoImageInline]
     list_per_page = 20
     
     fieldsets = (
         ('Основная информация', {
-            'fields': ('title', 'description', 'category', 'status', 'features')
+            'fields': ('brand', 'title', 'description', 'category', 'status', 'features')
         }),
         ('Технические характеристики', {
             'fields': (

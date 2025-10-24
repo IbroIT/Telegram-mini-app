@@ -7,12 +7,20 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from django.db.models import Q
 
-from .models import MotoCategory, MotoFeature, Motorcycle, MotoBooking
-from .serializers import MotoCategorySerializer, MotoFeatureSerializer, MotorcycleSerializer, MotoBookingSerializer, CreateMotoBookingSerializer, MotorcycleListSerializer
+from .models import MotoCategory, MotoFeature, Motorcycle, MotoBooking, MotoBrand
+from .serializers import MotoCategorySerializer, MotoFeatureSerializer, MotorcycleSerializer, MotoBookingSerializer, CreateMotoBookingSerializer, MotorcycleListSerializer, MotoBrandSerializer
 
 class MotoCategoryViewSet(viewsets.ModelViewSet):
     queryset = MotoCategory.objects.all()
     serializer_class = MotoCategorySerializer
+
+class MotoBrandsView(APIView):
+    """API для получения марок мотоциклов"""
+    
+    def get(self, request):
+        brands = MotoBrand.objects.all()
+        serializer = MotoBrandSerializer(brands, many=True, context={'request': request})
+        return Response(serializer.data)
 
 class MotoFeatureViewSet(viewsets.ModelViewSet):
     queryset = MotoFeature.objects.all()

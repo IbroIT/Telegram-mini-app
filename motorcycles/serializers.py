@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import MotoCategory, MotoFeature, Motorcycle, MotoImage, MotoBooking
+from .models import MotoCategory, MotoFeature, Motorcycle, MotoImage, MotoBooking, MotoBrand
 
 class MotoCategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -98,8 +98,15 @@ class CreateMotoBookingSerializer(serializers.ModelSerializer):
         return booking
     
 
+class MotoBrandSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MotoBrand
+        fields = ['id', 'name', 'icon']
+
 class MotorcycleListSerializer(serializers.ModelSerializer):
     """Сериализатор для списка мотоциклов (карточек)"""
+    brand_name = serializers.CharField(source='brand.name', read_only=True)
+    brand_icon = serializers.SerializerMethodField()
     category_title = serializers.CharField(source='category.title', read_only=True)
     features = MotoFeatureSerializer(many=True, read_only=True)
     first_image = serializers.SerializerMethodField()
@@ -108,11 +115,16 @@ class MotorcycleListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Motorcycle
         fields = [
-            'id', 'title', 'category_title', 'year', 'color',
-            'engine_volume', 'mileage', 'transmission', 'oil_type',
+            'id', 'title', 'brand', 'brand_name', 'brand_icon', 'category_title',
+            'year', 'color', 'engine_volume', 'mileage', 'transmission', 'oil_type',
             'bike_type', 'power', 'price_per_day', 'deposit', 'status', 
             'features', 'first_image'
         ]
+    
+    def get_brand_icon(self, obj):
+        if obj.brand and obj.brand.icon:
+            return self.context['request'].build_absolute_uri(obj.brand.icon.url)
+        return None
     
     def get_first_image(self, obj):
         first_image = obj.images.first()

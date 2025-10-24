@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from unfold.admin import ModelAdmin
 from unfold.decorators import display
-from .models import Category, Feature, Car, CarImage, Booking
+from .models import Category, Feature, Car, CarImage, Booking, Brand
 
 class CarImageInline(admin.TabularInline):
     model = CarImage
@@ -35,21 +35,33 @@ class FeatureAdmin(ModelAdmin):
     search_fields = ['title']
     list_per_page = 20
 
+@admin.register(Brand)
+class BrandAdmin(ModelAdmin):
+    list_display = ['name', 'icon_preview']
+    search_fields = ['name']
+    
+    @display(description="Иконка")
+    def icon_preview(self, obj):
+        if obj.icon:
+            return format_html('<img src="{}" width="30" height="30" style="object-fit: contain;" />', obj.icon.url)
+        return "—"
+    icon_preview.short_description = "Иконка"
+
 @admin.register(Car)
 class CarAdmin(ModelAdmin):
     list_display = [
-        'title', 'category', 'year', 'color', 'status_badge', 
+        'title', 'brand', 'category', 'year', 'color', 'status_badge', 
         'price_per_day', 'features_list', 'created_at'
     ]
-    list_filter = ['category', 'status', 'features', 'year', 'oil_type']
-    search_fields = ['title', 'description', 'color', 'transmission']
+    list_filter = ['brand', 'category', 'status', 'features', 'year', 'oil_type']
+    search_fields = ['title', 'description', 'color', 'transmission', 'brand__name']
     filter_horizontal = ['features']
     inlines = [CarImageInline]
     list_per_page = 20
     
     fieldsets = (
         ('Основная информация', {
-            'fields': ('title', 'description', 'category', 'status', 'features')
+            'fields': ('brand', 'title', 'description', 'category', 'status', 'features')
         }),
         ('Технические характеристики', {
             'fields': (

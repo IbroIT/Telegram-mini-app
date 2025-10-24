@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Car, Booking, Category, Feature, CarImage
+from .models import Car, Booking, Category, Feature, CarImage, Brand
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -30,27 +30,6 @@ class CarSerializer(serializers.ModelSerializer):
             'oil_type', 'price_per_day', 'deposit', 'status',
             'features', 'images', 'created_at'
         ]
-
-class CarListSerializer(serializers.ModelSerializer):
-    """Сериализатор для списка автомобилей (карточек)"""
-    category_title = serializers.CharField(source='category.title', read_only=True)
-    features = FeatureSerializer(many=True, read_only=True)
-    first_image = serializers.SerializerMethodField()
-    price_per_day = serializers.IntegerField()
-    
-    class Meta:
-        model = Car
-        fields = [
-            'id', 'title', 'category_title', 'year', 'color',
-            'engine_volume', 'mileage', 'transmission', 'oil_type',
-            'price_per_day', 'deposit', 'status', 'features', 'first_image'
-        ]
-    
-    def get_first_image(self, obj):
-        first_image = obj.images.first()
-        if first_image and first_image.image:
-            return self.context['request'].build_absolute_uri(first_image.image.url)
-        return None
 
 class BookingSerializer(serializers.ModelSerializer):
     car_title = serializers.CharField(source='car.title', read_only=True)
@@ -118,3 +97,37 @@ class CreateBookingSerializer(serializers.ModelSerializer):
         )
         
         return booking
+    
+
+class BrandSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Brand
+        fields = ['id', 'name', 'icon']
+
+class CarListSerializer(serializers.ModelSerializer):
+    """Сериализатор для списка автомобилей (карточек)"""
+    brand_name = serializers.CharField(source='brand.name', read_only=True)
+    brand_icon = serializers.SerializerMethodField()
+    category_title = serializers.CharField(source='category.title', read_only=True)
+    features = FeatureSerializer(many=True, read_only=True)
+    first_image = serializers.SerializerMethodField()
+    price_per_day = serializers.IntegerField()
+    
+    class Meta:
+        model = Car
+        fields = [
+            'id', 'title', 'brand', 'brand_name', 'brand_icon', 'category_title', 
+            'year', 'color', 'engine_volume', 'mileage', 'transmission', 'oil_type',
+            'price_per_day', 'deposit', 'status', 'features', 'first_image'
+        ]
+    
+    def get_brand_icon(self, obj):
+        if obj.brand and obj.brand.icon:
+            return self.context['request'].build_absolute_uri(obj.brand.icon.url)
+        return None
+    
+    def get_first_image(self, obj):
+        first_image = obj.images.first()
+        if first_image and first_image.image:
+            return self.context['request'].build_absolute_uri(first_image.image.url)
+        return None

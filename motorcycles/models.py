@@ -29,6 +29,29 @@ class MotoFeature(models.Model):
     def __str__(self):
         return self.title
 
+class MotoBrand(models.Model):
+    """Модель для марок мотоциклов"""
+    name = models.CharField(max_length=100, verbose_name="Название марки")
+    icon = models.ImageField(upload_to='motorcycles/brands/icons/', verbose_name="Иконка марки", null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Марка мотоцикла"
+        verbose_name_plural = "Марки мотоциклов"
+    
+    def __str__(self):
+        return self.name
+
+class MotoCategory(models.Model):
+    title = models.CharField(max_length=100, verbose_name="Название категории")
+    icon = models.FileField(upload_to='moto_categories/icons/', verbose_name="Иконка", null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Категория мотоцикла"
+        verbose_name_plural = "Категории мотоциклов"
+    
+    def __str__(self):
+        return self.title
+
 class Motorcycle(models.Model):
     OIL_TYPE_CHOICES = [
         ('Бензин', 'Бензин'),
@@ -41,6 +64,7 @@ class Motorcycle(models.Model):
     ]
     
     # Основная информация
+    brand = models.ForeignKey(MotoBrand, on_delete=models.CASCADE, verbose_name="Марка", null=True, blank=True)
     title = models.CharField(max_length=200, verbose_name="Заголовок")
     description = models.TextField(verbose_name="Описание", blank=True)
     category = models.ForeignKey(MotoCategory, on_delete=models.CASCADE, verbose_name="Категория")
@@ -55,7 +79,7 @@ class Motorcycle(models.Model):
     oil_type = models.CharField(max_length=20, choices=OIL_TYPE_CHOICES, verbose_name="Тип топлива")
     
     # Мотоциклетные специфические поля
-    bike_type = models.CharField(max_length=50, verbose_name="Тип мотоцикла", blank=True)  # спорт, круизер, эндуро и т.д.
+    bike_type = models.CharField(max_length=50, verbose_name="Тип мотоцикла", blank=True)
     power = models.IntegerField(verbose_name="Мощность (л.с.)", null=True, blank=True)
     
     # Цены и бронирование
@@ -74,7 +98,9 @@ class Motorcycle(models.Model):
         verbose_name_plural = "Мотоциклы"
     
     def __str__(self):
-        return f"{self.title} ({self.year})"
+        if self.brand:
+            return f"{self.brand.name} {self.title}"
+        return self.title
 
 class MotoWatermark:
     @staticmethod

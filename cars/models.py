@@ -29,6 +29,29 @@ class Feature(models.Model):
     def __str__(self):
         return self.title
 
+class Brand(models.Model):
+    """Модель для марок автомобилей"""
+    name = models.CharField(max_length=100, verbose_name="Название марки")
+    icon = models.ImageField(upload_to='cars/brands/icons/', verbose_name="Иконка марки", null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Марка автомобиля"
+        verbose_name_plural = "Марки автомобилей"
+    
+    def __str__(self):
+        return self.name
+
+class Category(models.Model):
+    title = models.CharField(max_length=100, verbose_name="Название категории")
+    icon = models.FileField(upload_to='categories/icons/', verbose_name="Иконка", null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Категория"
+        verbose_name_plural = "Категории"
+    
+    def __str__(self):
+        return self.title
+
 class Car(models.Model):
     OIL_TYPE_CHOICES = [
         ('Бензин', 'Бензин'),
@@ -43,6 +66,7 @@ class Car(models.Model):
     ]
     
     # Основная информация
+    brand = models.ForeignKey(Brand, on_delete=models.CASCADE, verbose_name="Марка", null=True, blank=True)
     title = models.CharField(max_length=200, verbose_name="Заголовок")
     description = models.TextField(verbose_name="Описание", blank=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE, verbose_name="Категория")
@@ -72,7 +96,9 @@ class Car(models.Model):
         verbose_name_plural = "Автомобили"
     
     def __str__(self):
-        return f"{self.title} ({self.year})"
+        if self.brand:
+            return f"{self.brand.name} {self.title}"
+        return self.title
 
 class Watermark:
     @staticmethod

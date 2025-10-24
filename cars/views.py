@@ -7,8 +7,8 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from django.db.models import Q
 
-from .models import Category, Feature, Car, Booking
-from .serializers import CategorySerializer, FeatureSerializer, CarSerializer, BookingSerializer, CreateBookingSerializer, CarListSerializer
+from .models import Category, Feature, Car, Booking, Brand
+from .serializers import CategorySerializer, FeatureSerializer, CarSerializer, BookingSerializer, CreateBookingSerializer, CarListSerializer, BrandSerializer
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -17,6 +17,15 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class FeatureViewSet(viewsets.ModelViewSet):
     queryset = Feature.objects.all()
     serializer_class = FeatureSerializer
+
+class CarBrandsView(APIView):
+    """API для получения марок автомобилей"""
+    
+    def get(self, request):
+        brands = Brand.objects.all()
+        serializer = BrandSerializer(brands, many=True, context={'request': request})
+        return Response(serializer.data)
+    
 
 class CarViewSet(viewsets.ModelViewSet):
     queryset = Car.objects.all()
