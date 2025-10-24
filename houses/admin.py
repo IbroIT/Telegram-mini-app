@@ -75,11 +75,11 @@ class HouseImageAdmin(admin.ModelAdmin):
 @admin.register(HouseBooking)
 class HouseBookingAdmin(admin.ModelAdmin):
     list_display = [
-        'house', 'client_name', 'phone_number', 'start_date', 'end_date', 
+        'house', 'telegram_id', 'client_name', 'phone_number', 'start_date', 'end_date', 
         'total_days', 'status', 'total_price', 'created_at'
     ]
     list_filter = ['status', 'start_date', 'end_date', 'house']
-    search_fields = ['house__title', 'client_name', 'phone_number', 'user__username']
+    search_fields = ['house__title', 'client_name', 'phone_number', 'telegram_id']
     date_hierarchy = 'start_date'
     readonly_fields = ['total_price', 'total_days']
     

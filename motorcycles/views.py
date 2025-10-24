@@ -69,7 +69,6 @@ class MotorcycleViewSet(viewsets.ModelViewSet):
 
 class MotoBookingViewSet(viewsets.ModelViewSet):
     queryset = MotoBooking.objects.all()
-    permission_classes = [permissions.IsAuthenticated]
     
     def get_serializer_class(self):
         if self.action == 'create':
@@ -77,13 +76,14 @@ class MotoBookingViewSet(viewsets.ModelViewSet):
         return MotoBookingSerializer
     
     def get_queryset(self):
-        # Пользователь видит только свои бронирования
+        # Для администраторов показываем все бронирования
         if self.request.user.is_staff:
             return MotoBooking.objects.all()
-        return MotoBooking.objects.filter(user=self.request.user)
+        # Для обычных запросов можно добавить фильтрацию по telegram_id если нужно
+        return MotoBooking.objects.all()
     
     def perform_create(self, serializer):
-        # Пользователь автоматически определяется из запроса
+        # Сохраняем без проверки пользователя
         serializer.save()
 
 class AvailableMotorcyclesView(APIView):

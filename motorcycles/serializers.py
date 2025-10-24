@@ -32,43 +32,65 @@ class MotorcycleSerializer(serializers.ModelSerializer):
 
 class MotoBookingSerializer(serializers.ModelSerializer):
     motorcycle_title = serializers.CharField(source='motorcycle.title', read_only=True)
-    user_name = serializers.CharField(source='user.username', read_only=True)
+    total_days = serializers.ReadOnlyField()
     
     class Meta:
         model = MotoBooking
         fields = [
-            'id', 'motorcycle', 'motorcycle_title', 'user', 'user_name',
-            'start_date', 'end_date', 'status', 'total_price',
-            'created_at'
+            'id', 'motorcycle', 'motorcycle_title', 'telegram_id',
+            'start_date', 'end_date', 'total_days', 'client_name', 'phone_number',
+            'status', 'total_price', 'comment', 'created_at'
         ]
-        read_only_fields = ['user', 'total_price', 'status']
+        read_only_fields = ['total_price', 'status', 'total_days']
 
 class CreateMotoBookingSerializer(serializers.ModelSerializer):
-    """Сериализатор для создания бронирования мотоцикла без указания пользователя"""
     class Meta:
         model = MotoBooking
-        fields = ['motorcycle', 'start_date', 'end_date']
+        fields = [
+            'motorcycle', 'telegram_id', 'start_date', 'end_date', 
+            'client_name', 'phone_number', 'comment'
+        ]
     
-    def create(self, validated_data):
-        user = self.context['request'].user
-        if user.is_anonymous:
-            raise serializers.ValidationError("Пользователь должен быть авторизован")
+    def validate(self, data):
+        start_date = data['start_date']
+        end_date = data['end_date']
         
-        motorcycle = validated_data['motorcycle']
-        start_date = validated_data['start_date']
-        end_date = validated_data['end_date']
-        
-        days = (end_date - start_date).days
-        if days <= 0:
+        if end_date <= start_date:
             raise serializers.ValidationError("Дата окончания должна быть позже даты начала")
         
-        total_price = days * motorcycle.price_per_day
+        motorcycle = data['motorcycle']
+        conflicting_bookings = MotoBooking.objects.filter(
+            motorcycle=motorcycle,
+            status__in=['confirmed', 'active', 'pending'],
+            start_date__lte=end_date,
+            end_date__gte=start_date
+        )
+        
+        if conflicting_bookings.exists():
+            raise serializers.ValidationError("На выбранные даты мотоцикл уже забронирован")
+        
+        return data
+    
+    def create(self, validated_data):
+        motorcycle = validated_data['motorcycle']
+        telegram_id = validated_data['telegram_id']
+        start_date = validated_data['start_date']
+        end_date = validated_data['end_date']
+        client_name = validated_data['client_name']
+        phone_number = validated_data['phone_number']
+        comment = validated_data.get('comment', '')
+        
+        total_days = (end_date - start_date).days + 1
+        total_price = total_days * motorcycle.price_per_day
         
         booking = MotoBooking.objects.create(
             motorcycle=motorcycle,
-            user=user,
+            telegram_id=telegram_id,
             start_date=start_date,
             end_date=end_date,
+            client_name=client_name,
+            phone_number=phone_number,
+            comment=comment,
             total_price=total_price,
             status='pending'
         )

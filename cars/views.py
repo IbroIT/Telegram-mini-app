@@ -28,7 +28,6 @@ class CarViewSet(viewsets.ModelViewSet):
 
 class BookingViewSet(viewsets.ModelViewSet):
     queryset = Booking.objects.all()
-    permission_classes = [permissions.IsAuthenticated]
     
     def get_serializer_class(self):
         if self.action == 'create':
@@ -36,13 +35,14 @@ class BookingViewSet(viewsets.ModelViewSet):
         return BookingSerializer
     
     def get_queryset(self):
-        # Пользователь видит только свои бронирования
+        # Для администраторов показываем все бронирования
         if self.request.user.is_staff:
             return Booking.objects.all()
-        return Booking.objects.filter(user=self.request.user)
+        # Для обычных запросов можно добавить фильтрацию по telegram_id если нужно
+        return Booking.objects.all()
     
     def perform_create(self, serializer):
-        # Пользователь автоматически определяется из запроса
+        # Сохраняем без проверки пользователя
         serializer.save()
 
 class AvailableCarsView(APIView):

@@ -33,45 +33,67 @@ class CarSerializer(serializers.ModelSerializer):
 
 class BookingSerializer(serializers.ModelSerializer):
     car_title = serializers.CharField(source='car.title', read_only=True)
-    user_name = serializers.CharField(source='user.username', read_only=True)
     total_days = serializers.ReadOnlyField()
     
     class Meta:
         model = Booking
         fields = [
-            'id', 'car', 'car_title', 'user', 'user_name',
+            'id', 'car', 'car_title', 'telegram_id',
             'start_date', 'end_date', 'total_days', 'client_name', 'phone_number',
             'status', 'total_price', 'comment', 'created_at'
         ]
-        read_only_fields = ['user', 'total_price', 'status', 'total_days']
-
+        read_only_fields = ['total_price', 'status', 'total_days']
 
 class CreateBookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
-        fields = ['car', 'start_date', 'end_date']
-
-    def create(self, validated_data):
-        user = self.context['request'].user
-        if user.is_anonymous:
-            raise serializers.ValidationError("Пользователь должен быть авторизован")
+        fields = [
+            'car', 'telegram_id', 'start_date', 'end_date', 
+            'client_name', 'phone_number', 'comment'
+        ]
+    
+    def validate(self, data):
+        start_date = data['start_date']
+        end_date = data['end_date']
         
-        car = validated_data['car']
-        start_date = validated_data['start_date']
-        end_date = validated_data['end_date']
-        
-        days = (end_date - start_date).days
-        if days <= 0:
+        if end_date <= start_date:
             raise serializers.ValidationError("Дата окончания должна быть позже даты начала")
         
-        total_price = days * car.price_per_day
+        car = data['car']
+        conflicting_bookings = Booking.objects.filter(
+            car=car,
+            status__in=['confirmed', 'active', 'pending'],
+            start_date__lte=end_date,
+            end_date__gte=start_date
+        )
+        
+        if conflicting_bookings.exists():
+            raise serializers.ValidationError("На выбранные даты автомобиль уже забронирован")
+        
+        return data
+    
+    def create(self, validated_data):
+        car = validated_data['car']
+        telegram_id = validated_data['telegram_id']
+        start_date = validated_data['start_date']
+        end_date = validated_data['end_date']
+        client_name = validated_data['client_name']
+        phone_number = validated_data['phone_number']
+        comment = validated_data.get('comment', '')
+        
+        total_days = (end_date - start_date).days + 1
+        total_price = total_days * car.price_per_day
         
         booking = Booking.objects.create(
             car=car,
-            user=user,
+            telegram_id=telegram_id,
             start_date=start_date,
             end_date=end_date,
+            client_name=client_name,
+            phone_number=phone_number,
+            comment=comment,
             total_price=total_price,
             status='pending'
         )
+        
         return booking

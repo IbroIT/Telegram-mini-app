@@ -74,7 +74,6 @@ class ExcursionViewSet(viewsets.ModelViewSet):
 
 class ExcursionBookingViewSet(viewsets.ModelViewSet):
     queryset = ExcursionBooking.objects.all()
-    permission_classes = [permissions.IsAuthenticated]
     
     def get_serializer_class(self):
         if self.action == 'create':
@@ -82,13 +81,14 @@ class ExcursionBookingViewSet(viewsets.ModelViewSet):
         return ExcursionBookingSerializer
     
     def get_queryset(self):
-        # Пользователь видит только свои бронирования
+        # Для администраторов показываем все бронирования
         if self.request.user.is_staff:
             return ExcursionBooking.objects.all()
-        return ExcursionBooking.objects.filter(user=self.request.user)
+        # Для обычных запросов можно добавить фильтрацию по telegram_id если нужно
+        return ExcursionBooking.objects.all()
     
     def perform_create(self, serializer):
-        # Пользователь автоматически определяется из запроса (Telegram)
+        # Сохраняем без проверки пользователя
         serializer.save()
 
 class AvailableExcursionsView(APIView):

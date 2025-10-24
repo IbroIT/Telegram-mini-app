@@ -5,6 +5,7 @@ from PIL import Image, ImageDraw, ImageFont
 import os
 from django.core.files.base import ContentFile
 import io
+from watermark import WatermarkProcessor
 
 class MotoCategory(models.Model):
     title = models.CharField(max_length=100, verbose_name="Название категории")
@@ -77,40 +78,39 @@ class Motorcycle(models.Model):
 
 class MotoWatermark:
     @staticmethod
-    def add_watermark(image_path, watermark_text="MOTO RENT"):
-        """Добавляет водяной знак на изображение"""
+    def add_watermark(image_path, watermark_path='media/watermark.png'):
+        """Добавляет водяной знак из изображения"""
         try:
             # Открываем оригинальное изображение
-            image = Image.open(image_path)
+            image = Image.open(image_path).convert('RGBA')
             
-            # Создаем прозрачный слой для водяного знака
-            watermark = Image.new('RGBA', image.size, (0, 0, 0, 0))
-            draw = ImageDraw.Draw(watermark)
+            # Открываем водяной знак
+            watermark = Image.open(watermark_path).convert('RGBA')
             
-            # Пытаемся использовать шрифт, если нет - используем стандартный
-            try:
-                font = ImageFont.truetype("arial.ttf", 80)
-            except:
-                font = ImageFont.load_default()
+            # Масштабируем водяной знак до 50% от размера основного изображения
+            image_width, image_height = image.size
+            watermark_width = int(image_width * 0.5)
+            watermark_height = int(watermark_width * watermark.height / watermark.width)
             
-            # Получаем размеры текста
-            bbox = draw.textbbox((0, 0), watermark_text, font=font)
-            text_width = bbox[2] - bbox[0]
-            text_height = bbox[3] - bbox[1]
+            watermark = watermark.resize((watermark_width, watermark_height), Image.Resampling.LANCZOS)
             
-            # Позиционируем текст по центру
-            x = (image.width - text_width) // 2
-            y = (image.height - text_height) // 2
+            # Устанавливаем прозрачность водяного знака
+            watermark = watermark.copy()
+            watermark.putalpha(128)  # 50% прозрачность
             
-            # Рисуем текст с прозрачностью
-            draw.text((x, y), watermark_text, font=font, fill=(255, 255, 255, 80))
+            # Позиционируем водяной знак по центру
+            position = (
+                (image_width - watermark_width) // 2,
+                (image_height - watermark_height) // 2
+            )
             
             # Объединяем изображение с водяным знаком
-            watermarked = Image.alpha_composite(image.convert('RGBA'), watermark)
+            watermarked = Image.new('RGBA', image.size)
+            watermarked = Image.alpha_composite(watermarked, image)
+            watermarked = Image.alpha_composite(watermarked, watermark)
             
             # Конвертируем обратно в RGB если нужно
-            if image.mode != 'RGBA':
-                watermarked = watermarked.convert('RGB')
+            watermarked = watermarked.convert('RGB')
             
             # Сохраняем в буфер
             buffer = io.BytesIO()
@@ -137,20 +137,23 @@ class MotoImage(models.Model):
         return f"Фото {self.motorcycle.title}"
     
     def save(self, *args, **kwargs):
-        # Сначала сохраняем оригинальное изображение
-        super().save(*args, **kwargs)
+        if not self.pk:
+            super().save(*args, **kwargs)
         
-        # Добавляем водяной знак
         if self.image:
-            watermarked_image = MotoWatermark.add_watermark(self.image.path)
-            if watermarked_image:
-                # Сохраняем изображение с водяным знаком
-                self.image.save(
-                    os.path.basename(self.image.name),
-                    watermarked_image,
-                    save=False
-                )
-                super().save(*args, **kwargs)
+            try:
+                watermarked_image = WatermarkProcessor.add_watermark(self.image.path)
+                if watermarked_image:
+                    self.image.save(
+                        os.path.basename(self.image.name),
+                        watermarked_image,
+                        save=False
+                    )
+            except Exception as e:
+                print(f"Error processing watermark for moto image: {e}")
+        
+        super().save(*args, **kwargs)
+
 
 class MotoBooking(models.Model):
     STATUS_CHOICES = [
@@ -162,7 +165,7 @@ class MotoBooking(models.Model):
     ]
     
     motorcycle = models.ForeignKey(Motorcycle, on_delete=models.CASCADE, verbose_name="Мотоцикл")
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
+    telegram_id = models.CharField(max_length=100, verbose_name="Telegram ID")
     start_date = models.DateField(verbose_name="Дата начала")
     end_date = models.DateField(verbose_name="Дата окончания")
     client_name = models.CharField(max_length=200, verbose_name="Имя клиента")
@@ -188,8 +191,7 @@ class MotoBooking(models.Model):
     def total_days(self):
         if self.start_date and self.end_date:
             return (self.end_date - self.start_date).days + 1
-        return 0  # или None, если хочешь
-
+        return 0 
     
     def calculate_total_price(self):
         return self.total_days * self.motorcycle.price_per_day

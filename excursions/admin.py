@@ -68,11 +68,11 @@ class ExcursionImageAdmin(admin.ModelAdmin):
 @admin.register(ExcursionBooking)
 class ExcursionBookingAdmin(admin.ModelAdmin):
     list_display = [
-        'excursion', 'client_name', 'phone_number', 'start_date', 'end_date', 
+        'excursion', 'telegram_id', 'client_name', 'phone_number', 'start_date', 'end_date', 
         'total_days', 'status', 'total_price', 'created_at'
     ]
     list_filter = ['status', 'start_date', 'end_date', 'excursion']
-    search_fields = ['excursion__title', 'client_name', 'phone_number', 'user__username']
+    search_fields = ['excursion__title', 'client_name', 'phone_number', 'telegram_id']
     date_hierarchy = 'start_date'
     readonly_fields = ['total_price', 'total_days']
     

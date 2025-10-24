@@ -30,22 +30,24 @@ class ExcursionSerializer(serializers.ModelSerializer):
 
 class ExcursionBookingSerializer(serializers.ModelSerializer):
     excursion_title = serializers.CharField(source='excursion.title', read_only=True)
-    user_name = serializers.CharField(source='user.username', read_only=True)
     total_days = serializers.ReadOnlyField()
     
     class Meta:
         model = ExcursionBooking
         fields = [
-            'id', 'excursion', 'excursion_title', 'user', 'user_name',
+            'id', 'excursion', 'excursion_title', 'telegram_id',
             'start_date', 'end_date', 'total_days', 'client_name', 'phone_number',
             'status', 'total_price', 'comment', 'created_at'
         ]
-        read_only_fields = ['user', 'total_price', 'status', 'total_days']
+        read_only_fields = ['total_price', 'status', 'total_days']
 
 class CreateExcursionBookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = ExcursionBooking
-        fields = ['excursion', 'start_date', 'end_date', 'client_name', 'phone_number', 'comment']
+        fields = [
+            'excursion', 'telegram_id', 'start_date', 'end_date', 
+            'client_name', 'phone_number', 'comment'
+        ]
     
     def validate(self, data):
         start_date = data['start_date']
@@ -68,11 +70,8 @@ class CreateExcursionBookingSerializer(serializers.ModelSerializer):
         return data
     
     def create(self, validated_data):
-        user = self.context['request'].user
-        if user.is_anonymous:
-            raise serializers.ValidationError("Пользователь должен быть авторизован")
-        
         excursion = validated_data['excursion']
+        telegram_id = validated_data['telegram_id']
         start_date = validated_data['start_date']
         end_date = validated_data['end_date']
         client_name = validated_data['client_name']
@@ -84,7 +83,7 @@ class CreateExcursionBookingSerializer(serializers.ModelSerializer):
         
         booking = ExcursionBooking.objects.create(
             excursion=excursion,
-            user=user,
+            telegram_id=telegram_id,
             start_date=start_date,
             end_date=end_date,
             client_name=client_name,

@@ -69,7 +69,6 @@ class HouseViewSet(viewsets.ModelViewSet):
 
 class HouseBookingViewSet(viewsets.ModelViewSet):
     queryset = HouseBooking.objects.all()
-    permission_classes = [permissions.IsAuthenticated]
     
     def get_serializer_class(self):
         if self.action == 'create':
@@ -77,13 +76,14 @@ class HouseBookingViewSet(viewsets.ModelViewSet):
         return HouseBookingSerializer
     
     def get_queryset(self):
-        # Пользователь видит только свои бронирования
+        # Для администраторов показываем все бронирования
         if self.request.user.is_staff:
             return HouseBooking.objects.all()
-        return HouseBooking.objects.filter(user=self.request.user)
+        # Для обычных запросов можно добавить фильтрацию по telegram_id если нужно
+        return HouseBooking.objects.all()
     
     def perform_create(self, serializer):
-        # Пользователь автоматически определяется из запроса
+        # Сохраняем без проверки пользователя
         serializer.save()
 
 class AvailableHousesView(APIView):

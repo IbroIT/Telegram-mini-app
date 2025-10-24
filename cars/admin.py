@@ -76,11 +76,11 @@ class CarImageAdmin(admin.ModelAdmin):
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
     list_display = [
-        'car', 'client_name', 'phone_number', 'start_date', 'end_date', 
+        'car', 'telegram_id', 'client_name', 'phone_number', 'start_date', 'end_date', 
         'total_days', 'status', 'total_price', 'created_at'
     ]
     list_filter = ['status', 'start_date', 'end_date', 'car']
-    search_fields = ['car__title', 'client_name', 'phone_number', 'user__username']
+    search_fields = ['car__title', 'client_name', 'phone_number', 'telegram_id']
     date_hierarchy = 'start_date'
     readonly_fields = ['total_price', 'total_days']
     

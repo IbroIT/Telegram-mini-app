@@ -30,22 +30,24 @@ class HouseSerializer(serializers.ModelSerializer):
         ]
 class HouseBookingSerializer(serializers.ModelSerializer):
     house_title = serializers.CharField(source='house.title', read_only=True)
-    user_name = serializers.CharField(source='user.username', read_only=True)
     total_days = serializers.ReadOnlyField()
     
     class Meta:
         model = HouseBooking
         fields = [
-            'id', 'house', 'house_title', 'user', 'user_name',
+            'id', 'house', 'house_title', 'telegram_id',
             'start_date', 'end_date', 'total_days', 'client_name', 'phone_number',
             'status', 'total_price', 'comment', 'created_at'
         ]
-        read_only_fields = ['user', 'total_price', 'status', 'total_days']
+        read_only_fields = ['total_price', 'status', 'total_days']
 
 class CreateHouseBookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = HouseBooking
-        fields = ['house', 'start_date', 'end_date', 'client_name', 'phone_number', 'comment']
+        fields = [
+            'house', 'telegram_id', 'start_date', 'end_date', 
+            'client_name', 'phone_number', 'comment'
+        ]
     
     def validate(self, data):
         start_date = data['start_date']
@@ -68,11 +70,8 @@ class CreateHouseBookingSerializer(serializers.ModelSerializer):
         return data
     
     def create(self, validated_data):
-        user = self.context['request'].user
-        if user.is_anonymous:
-            raise serializers.ValidationError("Пользователь должен быть авторизован")
-        
         house = validated_data['house']
+        telegram_id = validated_data['telegram_id']
         start_date = validated_data['start_date']
         end_date = validated_data['end_date']
         client_name = validated_data['client_name']
@@ -84,44 +83,12 @@ class CreateHouseBookingSerializer(serializers.ModelSerializer):
         
         booking = HouseBooking.objects.create(
             house=house,
-            user=user,
+            telegram_id=telegram_id,
             start_date=start_date,
             end_date=end_date,
             client_name=client_name,
             phone_number=phone_number,
             comment=comment,
-            total_price=total_price,
-            status='pending'
-        )
-        
-        return booking
-    """Сериализатор для создания бронирования дома без указания пользователя"""
-    class Meta:
-        model = HouseBooking
-        fields = ['house', 'start_date', 'end_date', 'guests']
-    
-    def create(self, validated_data):
-        user = self.context['request'].user
-        if user.is_anonymous:
-            raise serializers.ValidationError("Пользователь должен быть авторизован")
-        
-        house = validated_data['house']
-        start_date = validated_data['start_date']
-        end_date = validated_data['end_date']
-        guests = validated_data.get('guests', 1)
-        
-        days = (end_date - start_date).days
-        if days <= 0:
-            raise serializers.ValidationError("Дата выезда должна быть позже даты заезда")
-        
-        total_price = days * house.price_per_day
-        
-        booking = HouseBooking.objects.create(
-            house=house,
-            user=user,
-            start_date=start_date,
-            end_date=end_date,
-            guests=guests,
             total_price=total_price,
             status='pending'
         )
