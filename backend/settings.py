@@ -39,7 +39,10 @@ CORS_ALLOW_ALL_ORIGINS = True
 # Application definition
 
 INSTALLED_APPS = [
-    'corsheaders',  
+    "unfold",  # обязательно ПЕРЕД django.contrib.admin
+    "unfold.contrib.filters",  # для улучшенных фильтров
+    "unfold.contrib.forms",  # для специальных форм
+    "corsheaders",  
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -54,11 +57,33 @@ INSTALLED_APPS = [
     'django_filters',
 ]
 
+UNFOLD = {
+    "SITE_TITLE": "Rental Admin",
+    "SITE_HEADER": "Панель управления арендой",
+    "SITE_URL": "/",
+    "SHOW_VIEW_ON_SITE": True,
+    "COLORS": {
+        "primary": {
+            "50": "250 245 255",
+            "100": "243 232 255",
+            "200": "233 213 255",
+            "300": "216 180 254",
+            "400": "192 132 252",
+            "500": "168 85 247",
+            "600": "147 51 234",
+            "700": "126 34 206",
+            "800": "107 33 168",
+            "900": "88 28 135",
+        },
+    },
+}
+
+
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-        'whitenoise.middleware.WhiteNoiseMiddleware',  
+    'whitenoise.middleware.WhiteNoiseMiddleware',  
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
