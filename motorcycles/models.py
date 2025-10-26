@@ -41,6 +41,20 @@ class MotoBrand(models.Model):
     def __str__(self):
         return self.name
 
+class MotoModel(models.Model):
+    """Модель для моделей мотоциклов"""
+    brand = models.ForeignKey(MotoBrand, on_delete=models.CASCADE, verbose_name="Марка", related_name='models')
+    name = models.CharField(max_length=100, verbose_name="Название модели")
+    icon = models.ImageField(upload_to='motorcycles/models/icons/', verbose_name="Иконка модели", null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Модель мотоцикла"
+        verbose_name_plural = "Модели мотоциклов"
+        unique_together = ['brand', 'name']
+    
+    def __str__(self):
+        return f"{self.brand.name} {self.name}"
+
 class MotoCategory(models.Model):
     title = models.CharField(max_length=100, verbose_name="Название категории")
     icon = models.FileField(upload_to='moto_categories/icons/', verbose_name="Иконка", null=True, blank=True)
@@ -65,6 +79,7 @@ class Motorcycle(models.Model):
     
     # Основная информация
     brand = models.ForeignKey(MotoBrand, on_delete=models.CASCADE, verbose_name="Марка", null=True, blank=True)
+    model = models.ForeignKey(MotoModel, on_delete=models.CASCADE, verbose_name="Модель", null=True, blank=True)
     title = models.CharField(max_length=200, verbose_name="Заголовок")
     description = models.TextField(verbose_name="Описание", blank=True)
     category = models.ForeignKey(MotoCategory, on_delete=models.CASCADE, verbose_name="Категория")
@@ -98,7 +113,9 @@ class Motorcycle(models.Model):
         verbose_name_plural = "Мотоциклы"
     
     def __str__(self):
-        if self.brand:
+        if self.brand and self.model:
+            return f"{self.brand.name} {self.model.name} {self.title}"
+        elif self.brand:
             return f"{self.brand.name} {self.title}"
         return self.title
 

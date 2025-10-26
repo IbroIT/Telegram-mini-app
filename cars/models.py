@@ -41,6 +41,20 @@ class Brand(models.Model):
     def __str__(self):
         return self.name
 
+class CarModel(models.Model):
+    """Модель для моделей автомобилей"""
+    brand = models.ForeignKey(Brand, on_delete=models.CASCADE, verbose_name="Марка", related_name='models')
+    name = models.CharField(max_length=100, verbose_name="Название модели")
+    icon = models.ImageField(upload_to='cars/models/icons/', verbose_name="Иконка модели", null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Модель автомобиля"
+        verbose_name_plural = "Модели автомобилей"
+        unique_together = ['brand', 'name']
+    
+    def __str__(self):
+        return f"{self.brand.name} {self.name}"
+
 class Category(models.Model):
     title = models.CharField(max_length=100, verbose_name="Название категории")
     icon = models.FileField(upload_to='categories/icons/', verbose_name="Иконка", null=True, blank=True)
@@ -67,6 +81,7 @@ class Car(models.Model):
     
     # Основная информация
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE, verbose_name="Марка", null=True, blank=True)
+    model = models.ForeignKey(CarModel, on_delete=models.CASCADE, verbose_name="Модель", null=True, blank=True)
     title = models.CharField(max_length=200, verbose_name="Заголовок")
     description = models.TextField(verbose_name="Описание", blank=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE, verbose_name="Категория")
@@ -96,7 +111,9 @@ class Car(models.Model):
         verbose_name_plural = "Автомобили"
     
     def __str__(self):
-        if self.brand:
+        if self.brand and self.model:
+            return f"{self.brand.name} {self.model.name} {self.title}"
+        elif self.brand:
             return f"{self.brand.name} {self.title}"
         return self.title
 
