@@ -6,6 +6,7 @@ import os
 from django.core.files.base import ContentFile
 import io
 from watermark import WatermarkProcessor
+from core.models import City, DeliveryZone, RentalProvider
 
 class MotoCategory(models.Model):
     title = models.CharField(max_length=100, verbose_name="Название категории")
@@ -97,9 +98,15 @@ class Motorcycle(models.Model):
     bike_type = models.CharField(max_length=50, verbose_name="Тип мотоцикла", blank=True)
     power = models.IntegerField(verbose_name="Мощность (л.с.)", null=True, blank=True)
     
-    # Цены и бронирование
-    price_per_day = models.IntegerField(verbose_name="Цена за день ($)")
+    # Цены и бронирование (старое поле оставляем для совместимости)
+    price_per_day = models.IntegerField(verbose_name="Цена за день ($) (базовая)", help_text="Базовая цена, используется если не заданы тарифы")
     deposit = models.IntegerField(verbose_name="Депозит ($)")
+    
+    # Новые поля
+    city = models.ForeignKey(City, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Город")
+    rental_provider = models.ForeignKey(RentalProvider, on_delete=models.SET_NULL, null=True, blank=True, 
+                                       verbose_name="Прокатчик", help_text="Прокатчик, которому принадлежит мотоцикл")
+    delivery_zones = models.ManyToManyField(DeliveryZone, blank=True, verbose_name="Доступные зоны доставки")
     
     # Статус
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='available', verbose_name="Статус")
@@ -118,6 +125,36 @@ class Motorcycle(models.Model):
         elif self.brand:
             return f"{self.brand.name} {self.title}"
         return self.title
+    
+    def get_price_for_days(self, days):
+        """Рассчитать цену за указанное количество дней на основе тарифов"""
+        tiers = self.price_tiers.filter(is_active=True).order_by('-min_days')
+        
+        if not tiers.exists():
+            return days * self.price_per_day
+        
+        for tier in tiers:
+            if days >= tier.min_days:
+                return days * tier.price_per_day
+        
+        return days * self.price_per_day
+
+
+class MotoPriceTier(models.Model):
+    """Модель ценовых тарифов для мотоциклов"""
+    motorcycle = models.ForeignKey(Motorcycle, on_delete=models.CASCADE, related_name='price_tiers', verbose_name="Мотоцикл")
+    min_days = models.IntegerField(verbose_name="Минимум дней", help_text="Минимальное количество дней для применения тарифа")
+    price_per_day = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Цена за день ($)")
+    is_active = models.BooleanField(default=True, verbose_name="Активен")
+    
+    class Meta:
+        verbose_name = "Ценовой тариф мотоцикла"
+        verbose_name_plural = "Ценовые тарифы мотоциклов"
+        ordering = ['motorcycle', 'min_days']
+        unique_together = ['motorcycle', 'min_days']
+    
+    def __str__(self):
+        return f"{self.motorcycle.title} - от {self.min_days} дн. = ${self.price_per_day}/день"
 
 class MotoWatermark:
     @staticmethod
@@ -214,7 +251,22 @@ class MotoBooking(models.Model):
     client_name = models.CharField(max_length=200, verbose_name="Имя клиента")
     phone_number = models.CharField(max_length=20, verbose_name="Номер телефона")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Статус брони")
+    
+    # Новые поля
+    city = models.ForeignKey(City, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Город")
+    delivery_zone = models.ForeignKey(DeliveryZone, on_delete=models.SET_NULL, null=True, blank=True, 
+                                     verbose_name="Зона доставки")
+    
+    # Цены
+    rental_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Стоимость аренды", default=0)
+    delivery_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Стоимость доставки", default=0)
+    deposit = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Депозит", default=0)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Общая стоимость")
+    
+    # Согласие с правилами
+    provider_terms_accepted = models.BooleanField(default=False, verbose_name="Согласие с правилами прокатчика")
+    service_terms_accepted = models.BooleanField(default=False, verbose_name="Согласие с правилами сервиса")
+    
     comment = models.TextField(verbose_name="Комментарий", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -236,10 +288,27 @@ class MotoBooking(models.Model):
             return (self.end_date - self.start_date).days + 1
         return 0 
     
+    def calculate_rental_price(self):
+        """Рассчитать стоимость аренды на основе тарифов"""
+        return self.motorcycle.get_price_for_days(self.total_days)
+    
     def calculate_total_price(self):
-        return self.total_days * self.motorcycle.price_per_day
+        """Рассчитать общую стоимость (аренда + доставка)"""
+        rental = self.rental_price if self.rental_price else self.calculate_rental_price()
+        delivery = self.delivery_price if self.delivery_price else (self.delivery_zone.price if self.delivery_zone else 0)
+        return rental + delivery
     
     def save(self, *args, **kwargs):
+        if not self.rental_price:
+            self.rental_price = self.calculate_rental_price()
+        
+        if not self.delivery_price and self.delivery_zone:
+            self.delivery_price = self.delivery_zone.price
+        
+        if not self.deposit:
+            self.deposit = self.motorcycle.deposit
+        
         if not self.total_price:
             self.total_price = self.calculate_total_price()
+        
         super().save(*args, **kwargs)

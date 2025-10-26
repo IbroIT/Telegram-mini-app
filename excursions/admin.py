@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from unfold.admin import ModelAdmin
 from unfold.decorators import display
-from .models import ExcursionCategory, ExcursionFeature, Excursion, ExcursionImage, ExcursionBooking
+from .models import ExcursionCategory, ExcursionFeature, Excursion, ExcursionImage, ExcursionBooking, ExcursionPriceTier
 
 class ExcursionImageInline(admin.TabularInline):
     model = ExcursionImage
@@ -16,6 +16,13 @@ class ExcursionImageInline(admin.TabularInline):
             return format_html('<img src="{}" width="100" height="60" style="object-fit: cover; border-radius: 4px;" />', obj.image.url)
         return "Нет изображения"
     image_preview.short_description = "Предпросмотр"
+
+
+class ExcursionPriceTierInline(admin.TabularInline):
+    model = ExcursionPriceTier
+    extra = 1
+    fields = ['min_participants', 'price_per_person', 'is_active']
+    ordering = ['min_participants']
 
 @admin.register(ExcursionCategory)
 class ExcursionCategoryAdmin(ModelAdmin):
@@ -37,23 +44,31 @@ class ExcursionFeatureAdmin(ModelAdmin):
 @admin.register(Excursion)
 class ExcursionAdmin(ModelAdmin):
     list_display = [
-        'title', 'category', 'days', 'status_badge', 'price_per_person', 
-        'features_list', 'created_at'
+        'title', 'category', 'city', 'rental_provider_name', 'days', 'status_badge', 
+        'price_per_person', 'features_list', 'created_at'
     ]
-    list_filter = ['category', 'status', 'features', 'days']
+    list_filter = ['category', 'city', 'rental_provider', 'status', 'features', 'days']
     search_fields = ['title', 'description']
-    filter_horizontal = ['features']
-    inlines = [ExcursionImageInline]
+    filter_horizontal = ['features', 'delivery_zones']
+    inlines = [ExcursionPriceTierInline, ExcursionImageInline]
     list_per_page = 20
     
     fieldsets = (
         ('Основная информация', {
             'fields': ('title', 'description', 'category', 'status', 'features')
         }),
+        ('Местоположение и организатор', {
+            'fields': ('city', 'rental_provider', 'delivery_zones')
+        }),
         ('Дни и цены', {
-            'fields': ('days', 'price_per_person')
+            'fields': ('days', 'price_per_person', 'deposit'),
+            'description': 'Базовая цена используется когда не заданы тарифы. Добавьте тарифы ниже для гибкого ценообразования.'
         }),
     )
+    
+    @display(description="Организатор")
+    def rental_provider_name(self, obj):
+        return obj.rental_provider.name if obj.rental_provider else "—"
     
     @display(description="Особенности")
     def features_list(self, obj):
@@ -91,34 +106,49 @@ class ExcursionImageAdmin(ModelAdmin):
 @admin.register(ExcursionBooking)
 class ExcursionBookingAdmin(ModelAdmin):
     list_display = [
-        'excursion', 'client_name', 'phone_number', 'start_date', 'end_date', 
-        'total_days', 'status_badge', 'total_price', 'created_at'
+        'excursion', 'client_name', 'phone_number', 'participants', 'city', 'delivery_zone_name',
+        'start_date', 'end_date', 'total_days', 'status_badge', 
+        'excursion_price', 'transfer_price', 'total_price', 'provider_name', 'created_at'
     ]
-    list_filter = ['status', 'start_date', 'end_date', 'excursion']
+    list_filter = ['status', 'city', 'delivery_zone', 'start_date', 'end_date', 'excursion', 'excursion__rental_provider']
     search_fields = ['excursion__title', 'client_name', 'phone_number', 'telegram_id']
     date_hierarchy = 'start_date'
-    readonly_fields = ['total_price', 'total_days', 'created_at']
+    readonly_fields = ['excursion_price', 'transfer_price', 'deposit', 'total_price', 'total_days', 'created_at']
     list_per_page = 20
     
     fieldsets = (
         ('Основная информация', {
-            'fields': ('excursion', 'client_name', 'phone_number', 'telegram_id')
+            'fields': ('excursion', 'client_name', 'phone_number', 'telegram_id', 'participants')
+        }),
+        ('Местоположение и трансфер', {
+            'fields': ('city', 'delivery_zone')
         }),
         ('Даты бронирования', {
             'fields': ('start_date', 'end_date')
         }),
-        ('Статус и стоимость', {
-            'fields': ('status', 'total_price', 'total_days')
+        ('Стоимость', {
+            'fields': ('excursion_price', 'transfer_price', 'deposit', 'total_price', 'total_days'),
+            'description': 'Цены рассчитываются автоматически на основе тарифов'
         }),
-        ('Дополнительно', {
-            'fields': ('comment', 'created_at'),
-            'classes': ('collapse',)
+        ('Согласие с правилами', {
+            'fields': ('provider_terms_accepted', 'service_terms_accepted')
+        }),
+        ('Статус и дополнительно', {
+            'fields': ('status', 'comment', 'created_at'),
         }),
     )
     
     @display(description="Дней")
     def total_days(self, obj):
         return obj.total_days
+    
+    @display(description="Зона трансфера")
+    def delivery_zone_name(self, obj):
+        return obj.delivery_zone.name if obj.delivery_zone else "—"
+    
+    @display(description="Организатор")
+    def provider_name(self, obj):
+        return obj.excursion.rental_provider.name if obj.excursion.rental_provider else "—"
     
     @display(description="Статус")
     def status_badge(self, obj):

@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import MotoCategory, MotoFeature, Motorcycle, MotoImage, MotoBooking, MotoBrand, MotoModel
+from .models import MotoCategory, MotoFeature, Motorcycle, MotoImage, MotoBooking, MotoBrand, MotoModel, MotoPriceTier
+from core.serializers import CitySerializer, DeliveryZoneSerializer, RentalProviderSerializer
 
 class MotoCategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -17,11 +18,20 @@ class MotoImageSerializer(serializers.ModelSerializer):
         fields = ['id', 'image', 'order']
 
 
+class MotoPriceTierSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MotoPriceTier
+        fields = ['id', 'min_days', 'price_per_day', 'is_active']
+
 
 class MotorcycleSerializer(serializers.ModelSerializer):
     images = MotoImageSerializer(many=True, read_only=True)
     category_title = serializers.CharField(source='category.title', read_only=True)
     features = MotoFeatureSerializer(many=True, read_only=True)
+    city = CitySerializer(read_only=True)
+    rental_provider = RentalProviderSerializer(read_only=True)
+    delivery_zones = DeliveryZoneSerializer(many=True, read_only=True)
+    price_tiers = MotoPriceTierSerializer(many=True, read_only=True)
     
     class Meta:
         model = Motorcycle
@@ -29,28 +39,43 @@ class MotorcycleSerializer(serializers.ModelSerializer):
             'id', 'title', 'description', 'category', 'category_title',
             'year', 'color', 'engine_volume', 'mileage', 'transmission',
             'oil_type', 'bike_type', 'power', 'price_per_day', 'deposit', 
-            'status', 'features', 'images', 'created_at'
+            'status', 'features', 'images', 'city', 'rental_provider', 'delivery_zones',
+            'price_tiers', 'created_at'
         ]
 
 class MotoBookingSerializer(serializers.ModelSerializer):
     motorcycle_title = serializers.CharField(source='motorcycle.title', read_only=True)
     total_days = serializers.ReadOnlyField()
+    city = CitySerializer(read_only=True)
+    delivery_zone = DeliveryZoneSerializer(read_only=True)
+    provider_terms = serializers.SerializerMethodField()
     
     class Meta:
         model = MotoBooking
         fields = [
             'id', 'motorcycle', 'motorcycle_title', 'telegram_id',
             'start_date', 'end_date', 'total_days', 'client_name', 'phone_number',
-            'status', 'total_price', 'comment', 'created_at'
+            'status', 'city', 'delivery_zone', 
+            'rental_price', 'delivery_price', 'deposit', 'total_price',
+            'provider_terms_accepted', 'service_terms_accepted', 'provider_terms',
+            'comment', 'created_at'
         ]
-        read_only_fields = ['total_price', 'status', 'total_days']
+        read_only_fields = ['rental_price', 'delivery_price', 'deposit', 'total_price', 'status', 'total_days']
+    
+    def get_provider_terms(self, obj):
+        """Получить правила прокатчика для данной брони"""
+        if obj.motorcycle and obj.motorcycle.rental_provider:
+            return obj.motorcycle.rental_provider.terms
+        return None
+
 
 class CreateMotoBookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = MotoBooking
         fields = [
             'motorcycle', 'telegram_id', 'start_date', 'end_date', 
-            'client_name', 'phone_number', 'comment'
+            'client_name', 'phone_number', 'city', 'delivery_zone',
+            'provider_terms_accepted', 'service_terms_accepted', 'comment'
         ]
     
     def validate(self, data):
@@ -59,6 +84,13 @@ class CreateMotoBookingSerializer(serializers.ModelSerializer):
         
         if end_date <= start_date:
             raise serializers.ValidationError("Дата окончания должна быть позже даты начала")
+        
+        # Проверка согласия с правилами
+        if not data.get('provider_terms_accepted', False):
+            raise serializers.ValidationError("Необходимо согласиться с правилами прокатчика")
+        
+        if not data.get('service_terms_accepted', False):
+            raise serializers.ValidationError("Необходимо согласиться с правилами сервиса")
         
         motorcycle = data['motorcycle']
         conflicting_bookings = MotoBooking.objects.filter(
@@ -74,29 +106,7 @@ class CreateMotoBookingSerializer(serializers.ModelSerializer):
         return data
     
     def create(self, validated_data):
-        motorcycle = validated_data['motorcycle']
-        telegram_id = validated_data['telegram_id']
-        start_date = validated_data['start_date']
-        end_date = validated_data['end_date']
-        client_name = validated_data['client_name']
-        phone_number = validated_data['phone_number']
-        comment = validated_data.get('comment', '')
-        
-        total_days = (end_date - start_date).days + 1
-        total_price = total_days * motorcycle.price_per_day
-        
-        booking = MotoBooking.objects.create(
-            motorcycle=motorcycle,
-            telegram_id=telegram_id,
-            start_date=start_date,
-            end_date=end_date,
-            client_name=client_name,
-            phone_number=phone_number,
-            comment=comment,
-            total_price=total_price,
-            status='pending'
-        )
-        
+        booking = MotoBooking.objects.create(**validated_data)
         return booking
     
 
