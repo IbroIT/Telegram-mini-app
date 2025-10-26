@@ -15,6 +15,7 @@ urlpatterns = [
     path('moto-booking-calendar/', views.MotoBookingCalendarView.as_view(), name='moto-booking-calendar'),
     
     # Новые endpoints для карточек
+    path('models/', views.MotoModelsView.as_view(), name='moto-models'),
     path('cards/', views.MotorcycleCardsView.as_view(), name='motorcycle-cards'),
     path('categories/', views.MotoCategoriesView.as_view(), name='moto-categories'),
     path('brands/', views.MotoBrandsView.as_view(), name='moto-brands'),

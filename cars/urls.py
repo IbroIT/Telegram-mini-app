@@ -16,6 +16,7 @@ urlpatterns = [
     
     # Новые endpoints для карточек
     path('cards/', views.CarCardsView.as_view(), name='car-cards'),
+    path('models/', views.CarModelsView.as_view(), name='car-models'),
     path('categories/', views.CarCategoriesView.as_view(), name='car-categories'),
     path('brands/', views.CarBrandsView.as_view(), name='car-brands'),
     path('features/', views.CarFeaturesView.as_view(), name='car-features'),

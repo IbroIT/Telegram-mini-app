@@ -7,8 +7,8 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from django.db.models import Q
 
-from .models import Category, Feature, Car, Booking, Brand
-from .serializers import CategorySerializer, FeatureSerializer, CarSerializer, BookingSerializer, CreateBookingSerializer, CarListSerializer, BrandSerializer
+from .models import Category, Feature, Car, Booking, Brand,  CarModel
+from .serializers import CategorySerializer, FeatureSerializer, CarSerializer, BookingSerializer, CreateBookingSerializer, CarListSerializer, BrandSerializer, CarModelSerializer
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -136,8 +136,6 @@ class CarAvailabilityView(APIView):
         )
 
 class BookingCalendarView(APIView):
-    """Получение данных для календаря бронирований с отображением периодов"""
-    
     def get(self, request):
         car_id = request.query_params.get('car_id')
         month = request.query_params.get('month')
@@ -153,7 +151,6 @@ class BookingCalendarView(APIView):
                 else:
                     end_date = datetime(target_year, target_month + 1, 1).date()
             else:
-                # По умолчанию текущий месяц
                 today = timezone.now().date()
                 start_date = datetime(today.year, today.month, 1).date()
                 if today.month == 12:
@@ -169,36 +166,7 @@ class BookingCalendarView(APIView):
             )
             
             if car_id:
-                car_id = int(car_id)
-                bookings_query = bookings_query.filter(car_id=car_id)
-            
-            # Создаем календарь с периодами бронирования
-            calendar_data = []
-            current_date = start_date
-            
-            while current_date < end_date:
-                # Находим бронирования на эту дату
-                date_bookings = []
-                for booking in bookings_query:
-                    if booking.start_date <= current_date <= booking.end_date:
-                        date_bookings.append({
-                            'id': booking.id,
-                            'car': booking.car.title,
-                            'user': booking.user.username,
-                            'status': booking.status,
-                            'period': f"{booking.start_date} - {booking.end_date}",
-                            'total_days': (booking.end_date - booking.start_date).days + 1
-                        })
-                
-                is_available = len(date_bookings) == 0
-                
-                calendar_data.append({
-                    'date': current_date,
-                    'is_available': is_available,
-                    'bookings': date_bookings
-                })
-                
-                current_date += timedelta(days=1)
+                bookings_query = bookings_query.filter(car_id=int(car_id))
             
             # Группируем занятые периоды для удобного отображения
             booked_periods = []
@@ -210,7 +178,7 @@ class BookingCalendarView(APIView):
                     'start_date': booking.start_date,
                     'end_date': booking.end_date,
                     'status': booking.status,
-                    'user': booking.user.username,
+                    'client_name': booking.client_name,  # ИСПРАВЛЕНО: используем существующее поле
                     'period': f"{booking.start_date} - {booking.end_date}",
                     'total_days': (booking.end_date - booking.start_date).days + 1
                 })
@@ -222,7 +190,6 @@ class BookingCalendarView(APIView):
                     'month': start_date.month,
                     'year': start_date.year
                 },
-                'calendar': calendar_data,
                 'booked_periods': booked_periods,
                 'car_id': car_id
             })
@@ -232,7 +199,6 @@ class BookingCalendarView(APIView):
                 {'error': f'Неверный формат месяца или года: {str(e)}'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
 
 class CarCardsView(APIView):
     """API для получения всех автомобилей в формате карточек"""
@@ -263,4 +229,17 @@ class CarFeaturesView(APIView):
     def get(self, request):
         features = Feature.objects.all()
         serializer = FeatureSerializer(features, many=True)
+        return Response(serializer.data)
+    
+class CarModelsView(APIView):
+    """API для получения моделей автомобилей по марке"""
+    
+    def get(self, request):
+        brand_id = request.query_params.get('brand_id')
+        if brand_id:
+            models = CarModel.objects.filter(brand_id=brand_id)
+        else:
+            models = CarModel.objects.all()
+        
+        serializer = CarModelSerializer(models, many=True, context={'request': request})
         return Response(serializer.data)

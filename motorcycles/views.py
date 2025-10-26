@@ -7,8 +7,8 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from django.db.models import Q
 
-from .models import MotoCategory, MotoFeature, Motorcycle, MotoBooking, MotoBrand
-from .serializers import MotoCategorySerializer, MotoFeatureSerializer, MotorcycleSerializer, MotoBookingSerializer, CreateMotoBookingSerializer, MotorcycleListSerializer, MotoBrandSerializer
+from .models import MotoCategory, MotoFeature, Motorcycle, MotoBooking, MotoBrand, MotoModel
+from .serializers import MotoCategorySerializer, MotoFeatureSerializer, MotorcycleSerializer, MotoBookingSerializer, CreateMotoBookingSerializer, MotorcycleListSerializer, MotoBrandSerializer, MotoModelSerializer
 
 class MotoCategoryViewSet(viewsets.ModelViewSet):
     queryset = MotoCategory.objects.all()
@@ -176,8 +176,6 @@ class MotoAvailabilityView(APIView):
         )
 
 class MotoBookingCalendarView(APIView):
-    """Получение данных для календаря бронирований мотоциклов"""
-    
     def get(self, request):
         motorcycle_id = request.query_params.get('motorcycle_id')
         month = request.query_params.get('month')
@@ -193,7 +191,6 @@ class MotoBookingCalendarView(APIView):
                 else:
                     end_date = datetime(target_year, target_month + 1, 1).date()
             else:
-                # По умолчанию текущий месяц
                 today = timezone.now().date()
                 start_date = datetime(today.year, today.month, 1).date()
                 if today.month == 12:
@@ -201,7 +198,7 @@ class MotoBookingCalendarView(APIView):
                 else:
                     end_date = datetime(today.year, today.month + 1, 1).date()
             
-            # Получаем бронирования
+            # ИСПРАВЛЕНИЕ: убрать обращение к booking.user
             bookings_query = MotoBooking.objects.filter(
                 status__in=['confirmed', 'active', 'pending'],
                 start_date__lt=end_date,
@@ -209,38 +206,8 @@ class MotoBookingCalendarView(APIView):
             )
             
             if motorcycle_id:
-                motorcycle_id = int(motorcycle_id)
-                bookings_query = bookings_query.filter(motorcycle_id=motorcycle_id)
+                bookings_query = bookings_query.filter(motorcycle_id=int(motorcycle_id))
             
-            # Создаем календарь с периодами бронирования
-            calendar_data = []
-            current_date = start_date
-            
-            while current_date < end_date:
-                # Находим бронирования на эту дату
-                date_bookings = []
-                for booking in bookings_query:
-                    if booking.start_date <= current_date <= booking.end_date:
-                        date_bookings.append({
-                            'id': booking.id,
-                            'motorcycle': booking.motorcycle.title,
-                            'user': booking.user.username,
-                            'status': booking.status,
-                            'period': f"{booking.start_date} - {booking.end_date}",
-                            'total_days': (booking.end_date - booking.start_date).days + 1
-                        })
-                
-                is_available = len(date_bookings) == 0
-                
-                calendar_data.append({
-                    'date': current_date,
-                    'is_available': is_available,
-                    'bookings': date_bookings
-                })
-                
-                current_date += timedelta(days=1)
-            
-            # Группируем занятые периоды для удобного отображения
             booked_periods = []
             for booking in bookings_query:
                 booked_periods.append({
@@ -250,7 +217,7 @@ class MotoBookingCalendarView(APIView):
                     'start_date': booking.start_date,
                     'end_date': booking.end_date,
                     'status': booking.status,
-                    'user': booking.user.username,
+                    'client_name': booking.client_name,  # Используем существующее поле
                     'period': f"{booking.start_date} - {booking.end_date}",
                     'total_days': (booking.end_date - booking.start_date).days + 1
                 })
@@ -262,7 +229,6 @@ class MotoBookingCalendarView(APIView):
                     'month': start_date.month,
                     'year': start_date.year
                 },
-                'calendar': calendar_data,
                 'booked_periods': booked_periods,
                 'motorcycle_id': motorcycle_id
             })
@@ -303,4 +269,18 @@ class MotoFeaturesView(APIView):
     def get(self, request):
         features = MotoFeature.objects.all()
         serializer = MotoFeatureSerializer(features, many=True)
+        return Response(serializer.data)
+    
+
+class MotoModelsView(APIView):
+    """API для получения моделей мотоциклов по марке"""
+    
+    def get(self, request):
+        brand_id = request.query_params.get('brand_id')
+        if brand_id:
+            models = MotoModel.objects.filter(brand_id=brand_id)
+        else:
+            models = MotoModel.objects.all()
+        
+        serializer = MotoModelSerializer(models, many=True, context={'request': request})
         return Response(serializer.data)

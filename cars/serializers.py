@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Car, Booking, Category, Feature, CarImage, Brand
+from .models import Car, Booking, Category, Feature, CarImage, Brand, CarModel
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -131,3 +131,11 @@ class CarListSerializer(serializers.ModelSerializer):
         if first_image and first_image.image:
             return self.context['request'].build_absolute_uri(first_image.image.url)
         return None
+    
+
+class CarModelSerializer(serializers.ModelSerializer):
+    brand_name = serializers.CharField(source='brand.name', read_only=True)
+    
+    class Meta:
+        model = CarModel
+        fields = ['id', 'brand', 'brand_name', 'name', 'icon']

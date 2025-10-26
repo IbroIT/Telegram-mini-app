@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import MotoCategory, MotoFeature, Motorcycle, MotoImage, MotoBooking, MotoBrand
+from .models import MotoCategory, MotoFeature, Motorcycle, MotoImage, MotoBooking, MotoBrand, MotoModel
 
 class MotoCategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -15,6 +15,8 @@ class MotoImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = MotoImage
         fields = ['id', 'image', 'order']
+
+
 
 class MotorcycleSerializer(serializers.ModelSerializer):
     images = MotoImageSerializer(many=True, read_only=True)
@@ -131,3 +133,11 @@ class MotorcycleListSerializer(serializers.ModelSerializer):
         if first_image and first_image.image:
             return self.context['request'].build_absolute_uri(first_image.image.url)
         return None
+    
+
+class MotoModelSerializer(serializers.ModelSerializer):
+    brand_name = serializers.CharField(source='brand.name', read_only=True)
+    
+    class Meta:
+        model = MotoModel
+        fields = ['id', 'brand', 'brand_name', 'name', 'icon']
