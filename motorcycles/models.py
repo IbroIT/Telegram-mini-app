@@ -7,10 +7,11 @@ from django.core.files.base import ContentFile
 import io
 from watermark import WatermarkProcessor
 from core.models import City, DeliveryZone, RentalProvider
+from core.validators import validate_icon_file
 
 class MotoCategory(models.Model):
     title = models.CharField(max_length=100, verbose_name="Название категории")
-    icon = models.FileField(upload_to='moto_categories/icons/', verbose_name="Иконка", null=True, blank=True)
+    icon = models.FileField(upload_to='moto_categories/icons/', verbose_name="Иконка", validators=[validate_icon_file], null=True, blank=True)
     
     class Meta:
         verbose_name = "Категория мотоцикла"
@@ -33,7 +34,7 @@ class MotoFeature(models.Model):
 class MotoBrand(models.Model):
     """Модель для марок мотоциклов"""
     name = models.CharField(max_length=100, verbose_name="Название марки")
-    icon = models.ImageField(upload_to='motorcycles/brands/icons/', verbose_name="Иконка марки", null=True, blank=True)
+    icon = models.FileField(upload_to='motorcycles/brands/icons/', verbose_name="Иконка марки", validators=[validate_icon_file], null=True, blank=True)
     
     class Meta:
         verbose_name = "Марка мотоцикла"
@@ -46,7 +47,7 @@ class MotoModel(models.Model):
     """Модель для моделей мотоциклов"""
     brand = models.ForeignKey(MotoBrand, on_delete=models.CASCADE, verbose_name="Марка", related_name='models')
     name = models.CharField(max_length=100, verbose_name="Название модели")
-    icon = models.ImageField(upload_to='motorcycles/models/icons/', verbose_name="Иконка модели", null=True, blank=True)
+    icon = models.FileField(upload_to='motorcycles/models/icons/', verbose_name="Иконка модели", validators=[validate_icon_file], null=True, blank=True)
     
     class Meta:
         verbose_name = "Модель мотоцикла"
@@ -58,7 +59,7 @@ class MotoModel(models.Model):
 
 class MotoCategory(models.Model):
     title = models.CharField(max_length=100, verbose_name="Название категории")
-    icon = models.FileField(upload_to='moto_categories/icons/', verbose_name="Иконка", null=True, blank=True)
+    icon = models.FileField(upload_to='moto_categories/icons/', verbose_name="Иконка", validators=[validate_icon_file], null=True, blank=True)
     
     class Meta:
         verbose_name = "Категория мотоцикла"

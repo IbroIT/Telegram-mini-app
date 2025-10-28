@@ -7,9 +7,10 @@ from django.core.files.base import ContentFile
 import io
 from watermark import WatermarkProcessor
 from core.models import City, DeliveryZone, RentalProvider
+from core.validators import validate_icon_file
 class HouseCategory(models.Model):
     title = models.CharField(max_length=100, verbose_name="Название категории")
-    icon = models.FileField(upload_to='house_categories/icons/', verbose_name="Иконка", null=True, blank=True)
+    icon = models.FileField(upload_to='house_categories/icons/', verbose_name="Иконка", validators=[validate_icon_file], null=True, blank=True)
     
     class Meta:
         verbose_name = "Категория дома"

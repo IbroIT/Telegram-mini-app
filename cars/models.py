@@ -7,10 +7,11 @@ from django.core.files.base import ContentFile
 import io
 from watermark import WatermarkProcessor
 from core.models import City, DeliveryZone, RentalProvider
+from core.validators import validate_icon_file
 
 class Category(models.Model):
     title = models.CharField(max_length=100, verbose_name="Название категории")
-    icon = models.FileField(upload_to='categories/icons/', verbose_name="Иконка", null=True, blank=True)
+    icon = models.FileField(upload_to='categories/icons/', verbose_name="Иконка", validators=[validate_icon_file], null=True, blank=True)
     
     class Meta:
         verbose_name = "Категория"
@@ -33,7 +34,7 @@ class Feature(models.Model):
 class Brand(models.Model):
     """Модель для марок автомобилей"""
     name = models.CharField(max_length=100, verbose_name="Название марки")
-    icon = models.ImageField(upload_to='cars/brands/icons/', verbose_name="Иконка марки", null=True, blank=True)
+    icon = models.FileField(upload_to='cars/brands/icons/', verbose_name="Иконка марки", validators=[validate_icon_file], null=True, blank=True)
     
     class Meta:
         verbose_name = "Марка автомобиля"
@@ -46,7 +47,7 @@ class CarModel(models.Model):
     """Модель для моделей автомобилей"""
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE, verbose_name="Марка", related_name='models')
     name = models.CharField(max_length=100, verbose_name="Название модели")
-    icon = models.ImageField(upload_to='cars/models/icons/', verbose_name="Иконка модели", null=True, blank=True)
+    icon = models.FileField(upload_to='cars/models/icons/', verbose_name="Иконка модели", validators=[validate_icon_file], null=True, blank=True)
     
     class Meta:
         verbose_name = "Модель автомобиля"
@@ -58,7 +59,7 @@ class CarModel(models.Model):
 
 class Category(models.Model):
     title = models.CharField(max_length=100, verbose_name="Название категории")
-    icon = models.FileField(upload_to='categories/icons/', verbose_name="Иконка", null=True, blank=True)
+    icon = models.FileField(upload_to='categories/icons/', verbose_name="Иконка", validators=[validate_icon_file], null=True, blank=True)
     
     class Meta:
         verbose_name = "Категория"
